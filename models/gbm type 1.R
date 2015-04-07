@@ -10,22 +10,22 @@
 ## Step 1 - Download and Install H2O
 ######################################################################
 
-# The following two commands remove any previously installed H2O packages for R.
-if ("package:h2o" %in% search()) { detach("package:h2o", unload=TRUE) }
-if ("h2o" %in% rownames(installed.packages())) { remove.packages("h2o") }
-
-# Next, we download packages that H2O depends on.
-if (! ("methods" %in% rownames(installed.packages()))) { install.packages("methods") }
-if (! ("statmod" %in% rownames(installed.packages()))) { install.packages("statmod") }
-if (! ("stats" %in% rownames(installed.packages()))) { install.packages("stats") }
-if (! ("graphics" %in% rownames(installed.packages()))) { install.packages("graphics") }
-if (! ("RCurl" %in% rownames(installed.packages()))) { install.packages("RCurl") }
-if (! ("rjson" %in% rownames(installed.packages()))) { install.packages("rjson") }
-if (! ("tools" %in% rownames(installed.packages()))) { install.packages("tools") }
-if (! ("utils" %in% rownames(installed.packages()))) { install.packages("utils") }
-
-# Now we download, install and initialize the H2O package for R.
-install.packages("h2o", type="source", repos=(c("http://h2o-release.s3.amazonaws.com/h2o-dev/master/1112/R")))
+# # The following two commands remove any previously installed H2O packages for R.
+# if ("package:h2o" %in% search()) { detach("package:h2o", unload=TRUE) }
+# if ("h2o" %in% rownames(installed.packages())) { remove.packages("h2o") }
+# 
+# # Next, we download packages that H2O depends on.
+# if (! ("methods" %in% rownames(installed.packages()))) { install.packages("methods") }
+# if (! ("statmod" %in% rownames(installed.packages()))) { install.packages("statmod") }
+# if (! ("stats" %in% rownames(installed.packages()))) { install.packages("stats") }
+# if (! ("graphics" %in% rownames(installed.packages()))) { install.packages("graphics") }
+# if (! ("RCurl" %in% rownames(installed.packages()))) { install.packages("RCurl") }
+# if (! ("rjson" %in% rownames(installed.packages()))) { install.packages("rjson") }
+# if (! ("tools" %in% rownames(installed.packages()))) { install.packages("tools") }
+# if (! ("utils" %in% rownames(installed.packages()))) { install.packages("utils") }
+# 
+# # Now we download, install and initialize the H2O package for R.
+# install.packages("h2o", type="source", repos=(c("http://h2o-release.s3.amazonaws.com/h2o-dev/master/1112/R")))
 
 
 ######################################################################
@@ -36,10 +36,11 @@ install.packages("h2o", type="source", repos=(c("http://h2o-release.s3.amazonaws
 library(h2o)
 
 ## Launch h2o on localhost, using all cores
-h2oServer = h2o.init(nthreads=-1)
+h2oServer = h2o.init(max_mem_size = paste0(round(memory.limit()/1024),"g"),
+                     nthreads=-1)
 
 ## Point to directory where the Kaggle data is
-dir <- paste0(path.expand("~"), "/h2o-kaggle/otto/")
+dir <- getwd()
 
 ## For Spark/Hadoop/YARN/Standalone operation on a cluster, follow instructions on http://h2o.ai/download/
 ## Then connect to any cluster node from R
@@ -52,18 +53,18 @@ dir <- paste0(path.expand("~"), "/h2o-kaggle/otto/")
 ## Step 3 - Import Data and create Train/Validation Splits
 ######################################################################
 
-train.hex <- h2o.importFile(paste0(dir,"train.csv"), key="train.hex")
-test.hex <- h2o.importFile(paste0(dir, "test.csv"), key="test.hex")
+train.hex <- h2o.importFile(paste0(dir,"/data/train.csv.gz"), key="train.hex")
+test.hex  <- h2o.importFile(paste0(dir,"/data/test.csv.gz"), key="test.hex")
 dim(train.hex)
 summary(train.hex)
 
 predictors <- 2:(ncol(train.hex)-1) #ignore first column 'id'
-response <- ncol(train.hex)
+response   <- ncol(train.hex)
 
-## Split into 80/20 Train/Validation
+## Split into 70/30 Train/Validation
 rnd <- h2o.runif(train.hex, 1234)
-train_holdout.hex <- h2o.assign(train.hex[rnd<0.8,], "train_holdout.hex")
-valid_holdout.hex <- h2o.assign(train.hex[rnd>=0.8,], "valid_holdout.hex")
+train_holdout.hex <- h2o.assign(train.hex[rnd<0.7,], "train_holdout.hex")
+valid_holdout.hex <- h2o.assign(train.hex[rnd>=0.7,], "valid_holdout.hex")
 
 
 ######################################################################
@@ -80,9 +81,9 @@ valid_holdout.hex <- h2o.assign(train.hex[rnd>=0.8,], "valid_holdout.hex")
 
 models <- c()
 for (i in 1:10) {
-        rand_numtrees <- sample(1:50,1) ## 1 to 50 trees
+        rand_numtrees  <- sample(1:50,1) ## 1 to 50 trees
         rand_max_depth <- sample(5:15,1) ## 5 to 15 max depth
-        rand_min_rows <- sample(1:10,1) ## 1 to 10 min rows
+        rand_min_rows  <- sample(1:10,1) ## 1 to 10 min rows
         rand_learn_rate <- 0.025*sample(1:10,1) ## 0.025 to 0.25 learning rate
         model_name <- paste0("GBMModel_",i,
                              "_ntrees",rand_numtrees,
@@ -144,8 +145,7 @@ model <- h2o.gbm(x=predictors,
                  ntrees=42,
                  max_depth=10, 
                  min_rows=10,
-                 learn_rate=0.175
-)
+                 learn_rate=0.175)
 
 
 ######################################################################
@@ -165,4 +165,8 @@ submission <- h2o.cbind(test.hex[,1], pred)
 head(submission)
 
 ## Save submission to disk
-h2o.exportFile(submission, paste0(dir, "submission.csv"))
+con <- gzfile(paste0("./data/submission",Sys.Date(),".csv.gz"))
+write.csv(as.matrix(submission), con, row.names=FALSE)
+unlink(con)
+
+h2o.shutdown(h2oServer, prompt = TRUE)

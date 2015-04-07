@@ -1,6 +1,5 @@
 ## Load the required packages for the project
 packages.list = c("knitr","pander","rmarkdown",      # Documentation packages
-#                 "magrittr",                        # Make code readable
                   "ggplot2","gridExtra",             # Visualisation 
                   "devtools","testthat",             # Development tools for R
                   "caret","e1071",                   # Classification Algorithms
@@ -8,7 +7,8 @@ packages.list = c("knitr","pander","rmarkdown",      # Documentation packages
                   "plyr","reshape2",                 # Data Munging Tools
                   "pROC","ROCR","Metrics",           # Performance tools 
                   "doParallel","foreach",            # Parallel Tools
-                  "devtools")
+                  "xlsx",                            # Exporting Tools
+                  "devtools","plyr")
 for (i in 1:length(packages.list)){
         if(!require(packages.list[i], character.only=TRUE)) {
                 install.packages(packages.list[i])}

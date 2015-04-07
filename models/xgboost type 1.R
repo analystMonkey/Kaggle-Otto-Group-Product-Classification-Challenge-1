@@ -1,7 +1,6 @@
 # http://www.kaggle.com/c/otto-group-product-classification-challenge/forums/t/12947/achieve-0-50776-on-the-leaderboard-in-a-minute-with-xgboost
 # https://github.com/dmlc/xgboost/wiki/Parameters
-
-cat("\014"); rm(list = ls())
+cat("\014"); rm(list = ls(all = TRUE)); gc(reset=TRUE)
 set.seed(2030)
 # 1. Load the required packages for the project
 source("lib/load_libraries.R")

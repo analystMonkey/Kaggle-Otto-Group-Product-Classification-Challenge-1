@@ -17,7 +17,7 @@ data.train  <- read.csv("./data/train.csv.gz",header=TRUE)[,-1]
 
 # 4. Split the data set
 Ncol <- ncol(data.train)
-ind.train <- createDataPartition(y=data.train[,'target'], p=0.9, list=FALSE,
+ind.train <- createDataPartition(y=data.train[,'target'], p=0.7, list=FALSE,
                                  groups=nlevels(data.train[,'target']))
 batch.train <- data.train[ind.train,]
 batch.valid <- data.train[-ind.train,]
@@ -85,11 +85,6 @@ nround = 120 #the max number of iterations
 bst.cv = xgb.cv(params=param, data = dtrain, nrounds = nround,
                 nfold = 5, showsd = TRUE, verbose=TRUE)
 tail(bst.cv,1)
-# C. Model Performance
-pred <- predict(mdl.xgb,dtrain)
-pred <- t(matrix(pred,9,length(pred)/9))
-actual <- model.matrix(~ batch.dtrain[,Ncol] - 1)
-LogLoss(actual,pred)
 
 ## -------------------------------------------------------------------------- ##
 ## Validate the Resualts

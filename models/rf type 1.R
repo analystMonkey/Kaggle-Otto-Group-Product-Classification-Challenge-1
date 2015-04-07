@@ -12,10 +12,9 @@ sapply(list.files(pattern="[.]R$", path="./functions/", full.names=TRUE), source
 # 3. Load data set
 data.train <- read.csv("./data/train.csv.gz")[,-1]   
 data.test  <- read.csv("./data/test.csv.gz")[,-1]    
-sampleSubmission  <- read.csv("./submissions/sampleSubmission.csv.gz")   
 
 # 4. Split the data set by stratified sampling
-ind.train <- createDataPartition(y=data.train[,'target'], p=0.1, list=FALSE,
+ind.train <- createDataPartition(y=data.train[,'target'], p=0.7, list=FALSE,
                                  groups=nlevels(data.train[,'target']))
 batch.train <- data.train[ind.train,]
 batch.valid <- data.train[-ind.train,]
@@ -31,8 +30,8 @@ mdl.rft1 <- train(target ~., data=batch.train,
                   method = "parRF", 
                   metric = "LogLoss",
                   maximize = FALSE,
-#                   distribution = "multinomial",                
                   trControl = fitControl,
+                  verbose = TRUE,
                   tuneGrid = expand.grid(mtry=c(25))) # Recommended: sqrt(#predictor)
 mdl.rft1
 
@@ -44,13 +43,6 @@ predicted <- predict(mdl.rft1, batch.valid, type = "prob")
 # Create a design matrix (withput intercept)
 obs <- batch.valid[,"target"]
 actual <- model.matrix(~ obs - 1)
-
-LogLoss <- function(actual, pred, eps = 1e-15) {
-        stopifnot(all(dim(actual) == dim(pred)))
-        pred[pred < eps] <- eps
-        pred[pred > 1 - eps] <- 1 - eps
-        -sum(actual * log(pred)) / nrow(pred) 
-}
 
 LogLoss(actual,predicted)
 
